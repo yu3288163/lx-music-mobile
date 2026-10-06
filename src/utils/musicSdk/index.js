@@ -16,11 +16,11 @@ import { versionChars } from './versionChars'
 const sources = {
   sources: [
     {
-      name: '酷我音乐',
+      name: '小窝音乐',
       id: 'kw',
     },
     {
-      name: '酷狗音乐',
+      name: '小枸音乐',
       id: 'kg',
     },
     {

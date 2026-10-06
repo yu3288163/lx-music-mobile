@@ -9,6 +9,8 @@ import apiSourceInfo from './api-source-info'
 
 // [二开] 内置直连取链：无自定义音源时，酷狗可直连播放（TVBox csp_Kugou 思路）
 import directApiKg from './kg/api-direct'
+// [二开] 酷我：无自定义音源时走内置直连 + 自建服务端兜底（TVBox csp_Kuwo 思路）
+import directApiKw from './kw/api-direct'
 // [二开] 小爱音乐：经自建服务端取链（飞牛 Docker 上运行的 FastAPI 壳）
 import directApiXiaiai from './xiaiai'
 
@@ -36,12 +38,13 @@ const apiList = {
 // [二开] 无自定义音源时的内置直连兜底（不依赖外部脚本）
 const builtInApis = {
   kg: directApiKg,
+  kw: directApiKw,
   xiaiai: directApiXiaiai,
 }
 const supportQuality = {
-  // [二开] 未配置任何音源（默认 ''）时，kg / 小爱音乐 走内置直连取链，需声明可用音质
+  // [二开] 未配置任何音源（默认 ''）时，kg / kw / 小爱音乐 走内置直连取链，需声明可用音质
   // 否则 global.lx.qualityList 为空 → assertApiSupport 为 false → 播放链路跳过该源
-  '': { kg: ['128k'], xiaiai: ['128k'] },
+  '': { kg: ['128k'], kw: ['128k'], xiaiai: ['128k'] },
 }
 
 for (const api of apiSourceInfo) {

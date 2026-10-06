@@ -10,6 +10,8 @@ import Backup from './settings/Backup'
 import Other from './settings/Other'
 import Alist from './settings/Alist'
 import Xiaoai from './settings/Xiaoai'
+import Kugou from './settings/Kugou'
+import Kuwo from './settings/Kuwo'
 import Version from './settings/Version'
 import About from './settings/About'
 
@@ -24,6 +26,8 @@ export const SETTING_SCREENS = [
   'other',
   'alist',
   'xiaiai',
+  'kugou',
+  'kuwo',
   'version',
   'about',
 ] as const
@@ -61,6 +65,8 @@ const Main = forwardRef<MainType, {}>((props, ref) => {
       case 'other': return <Other />
       case 'alist': return <Alist />
       case 'xiaiai': return <Xiaoai />
+      case 'kugou': return <Kugou />
+      case 'kuwo': return <Kuwo />
       case 'version': return <Version />
       case 'about': return <About />
       case 'basic':

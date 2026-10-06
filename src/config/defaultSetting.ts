@@ -79,6 +79,8 @@ const defaultSetting: LX.AppSetting = {
   'alist.root': '/',
 
   'xiaiai.base': '',
+  'kugou.base': '',
+  'kuwo.base': '',
 
   // 'theme.id': 'blue_plus',
   'theme.id': 'green',

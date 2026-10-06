@@ -1,6 +1,15 @@
 import { httpFetch } from '../../request'
 import { decodeName, formatPlayTime, sizeFormate } from '../../index'
 import { formatSingerName } from '../utils'
+import settingState from '@/store/setting/state'
+
+// [二开] 歌手分类前缀 + 服务端地址（kugou.base，留空复用 xiaiai.base）
+const CAT_PREFIX = 'kgcat__'
+const getServerBase = () => {
+  const raw = settingState.setting
+  const b = (raw['kugou.base'] || raw['xiaiai.base'] || '').replace(/\/+$/, '')
+  return b
+}
 
 let boardList = [{ id: 'kg__8888', name: 'TOP500', bangid: '8888' }, { id: 'kg__6666', name: '飙升榜', bangid: '6666' }, { id: 'kg__59703', name: '蜂鸟流行音乐榜', bangid: '59703' }, { id: 'kg__52144', name: '抖音热歌榜', bangid: '52144' }, { id: 'kg__52767', name: '快手热歌榜', bangid: '52767' }, { id: 'kg__24971', name: 'DJ热歌榜', bangid: '24971' }, { id: 'kg__23784', name: '网络红歌榜', bangid: '23784' }, { id: 'kg__44412', name: '说唱先锋榜', bangid: '44412' }, { id: 'kg__31308', name: '内地榜', bangid: '31308' }, { id: 'kg__33160', name: '电音榜', bangid: '33160' }, { id: 'kg__31313', name: '香港地区榜', bangid: '31313' }, { id: 'kg__51341', name: '民谣榜', bangid: '51341' }, { id: 'kg__54848', name: '台湾地区榜', bangid: '54848' }, { id: 'kg__31310', name: '欧美榜', bangid: '31310' }, { id: 'kg__33162', name: 'ACG新歌榜', bangid: '33162' }, { id: 'kg__31311', name: '韩国榜', bangid: '31311' }, { id: 'kg__31312', name: '日本榜', bangid: '31312' }, { id: 'kg__49225', name: '80后热歌榜', bangid: '49225' }, { id: 'kg__49223', name: '90后热歌榜', bangid: '49223' }, { id: 'kg__49224', name: '00后热歌榜', bangid: '49224' }, { id: 'kg__33165', name: '粤语金曲榜', bangid: '33165' }, { id: 'kg__33166', name: '欧美金曲榜', bangid: '33166' }, { id: 'kg__33163', name: '影视金曲榜', bangid: '33163' }, { id: 'kg__51340', name: '伤感榜', bangid: '51340' }, { id: 'kg__35811', name: '会员专享榜', bangid: '35811' }, { id: 'kg__37361', name: '雷达榜', bangid: '37361' }, { id: 'kg__21101', name: '分享榜', bangid: '21101' }, { id: 'kg__46910', name: '综艺新歌榜', bangid: '46910' }, { id: 'kg__30972', name: '酷狗音乐人原创榜', bangid: '30972' }, { id: 'kg__60170', name: '闽南语榜', bangid: '60170' }, { id: 'kg__65234', name: '儿歌榜', bangid: '65234' }, { id: 'kg__4681', name: '美国BillBoard榜', bangid: '4681' }, { id: 'kg__25028', name: 'Beatport电子舞曲榜', bangid: '25028' }, { id: 'kg__4680', name: '英国单曲榜', bangid: '4680' }, { id: 'kg__38623', name: '韩国Melon音乐榜', bangid: '38623' }, { id: 'kg__42807', name: 'joox本地热歌榜', bangid: '42807' }, { id: 'kg__36107', name: '小语种热歌榜', bangid: '36107' }, { id: 'kg__4673', name: '日本公信榜', bangid: '4673' }, { id: 'kg__46868', name: '日本SPACE SHOWER榜', bangid: '46868' }, { id: 'kg__42808', name: 'KKBOX风云榜', bangid: '42808' }, { id: 'kg__60171', name: '越南语榜', bangid: '60171' }, { id: 'kg__60172', name: '泰语榜', bangid: '60172' }, { id: 'kg__59895', name: 'R&B榜', bangid: '59895' }, { id: 'kg__59896', name: '摇滚榜', bangid: '59896' }, { id: 'kg__59897', name: '爵士榜', bangid: '59897' }, { id: 'kg__59898', name: '乡村音乐榜', bangid: '59898' }, { id: 'kg__59900', name: '纯音乐榜', bangid: '59900' }, { id: 'kg__59899', name: '古典榜', bangid: '59899' }, { id: 'kg__22603', name: '5sing音乐榜', bangid: '22603' }, { id: 'kg__21335', name: '繁星音乐榜', bangid: '21335' }, { id: 'kg__33161', name: '古风新歌榜', bangid: '33161' }, { id: 'kg__130015', name: '视频号热歌酷狗榜', bangid: '130015' }, { id: 'kg__130068', name: '短视频热歌榜', bangid: '130068' }, { id: 'kg__130008', name: '百万收藏榜', bangid: '130008' }, { id: 'kg__130025', name: '短视频收藏人气榜', bangid: '130025' }]
 
@@ -159,30 +168,51 @@ export default {
     return list
   },
   async getBoards(retryNum = 0) {
-    // if (++retryNum > 3) return Promise.reject(new Error('try max num'))
-    // let response
-    // try {
-    //   response = await this.getBoardsData()
-    // } catch (error) {
-    //   return this.getBoards(retryNum)
-    // }
-    // // console.log(response.body)
-    // if (response.statusCode !== 200 || response.body.errcode !== 0) return this.getBoards(retryNum)
-    // const list = this.filterBoardsData(response.body.data.info)
-    // console.log(list)
-    // // console.log(JSON.stringify(list))
-    // this.list = list
-    // return {
-    //   list,
-    //   source: 'kg',
-    // }
-    this.list = boardList
+    let list = boardList.slice()
+    // [二开] 歌手分类（语种×性别）来自自建服务端 /kg/categories；未配服务器时自动跳过
+    const b = getServerBase()
+    if (b) {
+      try {
+        const { body, statusCode } = await httpFetch(`${b}/kg/categories`, { method: 'GET', timeout: 20000 }).promise
+        if (statusCode === 200 && Array.isArray(body?.list)) {
+          for (const it of body.list) {
+            list.push({ id: CAT_PREFIX + it.id, name: it.name, bangid: CAT_PREFIX + it.id })
+          }
+        }
+      } catch (_) { /* 忽略：未配服务器或网络异常，仅展示官方榜单 */ }
+    }
+    this.list = list
     return {
-      list: boardList,
+      list,
       source: 'kg',
     }
   },
   async getList(bangid, page, retryNum = 0) {
+    // [二开] 歌手分类：走自建服务端 /kg/songs（匹配 TVBox 酷狗 语种×性别 分类浏览）
+    if (bangid.startsWith(CAT_PREFIX)) {
+      const cat = bangid.slice(CAT_PREFIX.length)
+      const b = getServerBase()
+      if (!b) throw new Error('未配置小枸服务器地址')
+      const { body, statusCode } = await httpFetch(`${b}/kg/songs?cat=${encodeURIComponent(cat)}&page=${page}`, { method: 'GET', timeout: 30000 }).promise
+      if (statusCode !== 200) throw new Error(body?.error || `获取分类歌曲失败 HTTP ${statusCode}`)
+      const list = (body?.list || []).map(it => ({
+        singer: it.singer || '',
+        name: it.name || '',
+        albumName: it.album || '',
+        albumId: '',
+        songmid: it.id,
+        source: 'kg',
+        interval: '',
+        img: it.pic || null,
+        lrc: null,
+        hash: it.id,
+        otherSource: null,
+        types: [{ type: '128k', size: '', hash: it.id }],
+        _types: { '128k': { size: '', hash: it.id } },
+        typeUrl: {},
+      }))
+      return { total: body?.total || list.length, list, limit: 100, page, source: 'kg' }
+    }
     if (++retryNum > 3) throw new Error('try max num')
     const { body } = await this.getData(this.getUrl(page, bangid, this.listDetailLimit))
 
