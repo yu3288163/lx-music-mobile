@@ -13,6 +13,13 @@ const sources: Array<{
     disabled: false,
     supportQualitys: { alist: ['128k'] },
   },
+  // [二开] 小爱音乐：经自建服务端（飞牛 Docker）取链，统一标 128k
+  {
+    id: 'xiaiai',
+    name: '小爱音乐',
+    disabled: false,
+    supportQualitys: { xiaiai: ['128k'] },
+  },
 ]
 
 export default sources

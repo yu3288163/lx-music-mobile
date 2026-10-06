@@ -12,6 +12,7 @@ import Other from '../settings/Other'
 import Version from '../settings/Version'
 import About from '../settings/About'
 import Alist from '../settings/Alist'
+import Xiaoai from '../settings/Xiaoai'
 import { createStyle } from '@/utils/tools'
 import { SETTING_SCREENS, type SettingScreenIds } from '../Main'
 
@@ -40,6 +41,7 @@ const ListItem = memo(({
     case 'backup': return <Backup />
     case 'other': return <Other />
     case 'alist': return <Alist />
+    case 'xiaiai': return <Xiaoai />
     case 'version': return <Version />
     case 'about': return <About />
     case 'basic': return <Basic />

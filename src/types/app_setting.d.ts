@@ -380,6 +380,11 @@ declare global {
        * Alist 根目录
        */
       'alist.root': string
+
+      /**
+       * 小爱音乐服务器地址
+       */
+      'xiaiai.base': string
     }
   }
 }

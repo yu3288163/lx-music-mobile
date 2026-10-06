@@ -7,6 +7,8 @@ import mg from './mg'
 import xm from './xm'
 // [二开] Alist 网盘音乐源
 import alist from './alist'
+// [二开] 小爱音乐（经自建服务端取链）
+import xiaiai from './xiaiai'
 import { supportQuality } from './api-source'
 import { versionChars } from './versionChars'
 
@@ -42,6 +44,11 @@ const sources = {
       name: 'Alist',
       id: 'alist',
     },
+    // [二开] 小爱音乐（经自建服务端取链）
+    {
+      name: '小爱音乐',
+      id: 'xiaiai',
+    },
   ],
   kw,
   kg,
@@ -52,6 +59,8 @@ const sources = {
   xm,
   // [二开] Alist 网盘音乐源
   alist,
+  // [二开] 小爱音乐
+  xiaiai,
 }
 export default {
   ...sources,
@@ -72,8 +81,8 @@ export const searchMusic = async({ name, singer, source: s, limit = 25 }) => {
   const trimStr = str => typeof str == 'string' ? str.trim() : str
   const musicName = trimStr(name)
   const tasks = []
-  // [二开] alist 不参与聚合搜索（避免每次聚合搜索都打你的网盘，且它只在独立选中时才有意义）
-  const excludeSource = ['xm', 'alist']
+  // [二开] alist / 小爱音乐 不参与聚合搜索（避免每次聚合搜索都打你的服务器/网盘，且它们只在独立选中时才有意义）
+  const excludeSource = ['xm', 'alist', 'xiaiai']
   for (const source of sources.sources) {
     if (!sources[source.id].musicSearch || source.id == s || excludeSource.includes(source.id)) continue
     tasks.push(sources[source.id].musicSearch.search(`${musicName} ${singer || ''}`.trim(), 1, limit).catch(_ => null))

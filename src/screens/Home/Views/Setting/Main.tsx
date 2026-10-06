@@ -9,6 +9,7 @@ import Sync from './settings/Sync'
 import Backup from './settings/Backup'
 import Other from './settings/Other'
 import Alist from './settings/Alist'
+import Xiaoai from './settings/Xiaoai'
 import Version from './settings/Version'
 import About from './settings/About'
 
@@ -22,6 +23,7 @@ export const SETTING_SCREENS = [
   'backup',
   'other',
   'alist',
+  'xiaiai',
   'version',
   'about',
 ] as const
@@ -58,6 +60,7 @@ const Main = forwardRef<MainType, {}>((props, ref) => {
       case 'backup': return <Backup />
       case 'other': return <Other />
       case 'alist': return <Alist />
+      case 'xiaiai': return <Xiaoai />
       case 'version': return <Version />
       case 'about': return <About />
       case 'basic':

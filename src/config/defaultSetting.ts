@@ -78,6 +78,8 @@ const defaultSetting: LX.AppSetting = {
   'alist.pass': '',
   'alist.root': '/',
 
+  'xiaiai.base': '',
+
   // 'theme.id': 'blue_plus',
   'theme.id': 'green',
   'theme.lightId': 'green',
