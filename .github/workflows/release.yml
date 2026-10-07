@@ -19,12 +19,32 @@ jobs:
       - name: Build Packages
         env:
           DISABLE_SVG: 1
+          KS_BASE64: ${{ secrets.KEYSTORE_STORE_FILE_BASE64 }}
+          KS_FILE: ${{ secrets.KEYSTORE_STORE_FILE }}
+          KS_ALIAS: ${{ secrets.KEYSTORE_KEY_ALIAS }}
+          KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+          KS_KEY_PASS: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
         shell: bash
         run: |
           cd android
-          echo ${{ secrets.KEYSTORE_STORE_FILE_BASE64 }} | base64 --decode > app/${{ secrets.KEYSTORE_STORE_FILE }}
-          ./gradlew assembleRelease -PMYAPP_UPLOAD_STORE_FILE='${{ secrets.KEYSTORE_STORE_FILE }}' -PMYAPP_UPLOAD_KEY_ALIAS='${{ secrets.KEYSTORE_KEY_ALIAS }}' -PMYAPP_UPLOAD_STORE_PASSWORD='${{ secrets.KEYSTORE_PASSWORD }}' -PMYAPP_UPLOAD_KEY_PASSWORD='${{ secrets.KEYSTORE_KEY_PASSWORD }}'
-          rm -f app/${{ secrets.KEYSTORE_STORE_FILE }}
+          MISSING=""
+          [ -z "$KS_BASE64" ] && MISSING="$MISSING KEYSTORE_STORE_FILE_BASE64"
+          [ -z "$KS_FILE" ] && MISSING="$MISSING KEYSTORE_STORE_FILE"
+          [ -z "$KS_ALIAS" ] && MISSING="$MISSING KEYSTORE_KEY_ALIAS"
+          [ -z "$KS_PASS" ] && MISSING="$MISSING KEYSTORE_PASSWORD"
+          [ -z "$KS_KEY_PASS" ] && MISSING="$MISSING KEYSTORE_KEY_PASSWORD"
+          if [ -n "$MISSING" ]; then
+            echo "::error::以下 Secrets 未配置:$MISSING (仓库 Settings -> Secrets and variables -> Actions)"
+            exit 1
+          fi
+          # 剥离 base64 中可能混入的换行/回车/空格(粘贴时常见),避免脚本被拆行破坏
+          CLEAN_B64=$(printf '%s' "$KS_BASE64" | tr -d '\r\n\t ')
+          echo "$CLEAN_B64" | base64 --decode > "app/$KS_FILE"
+          echo "keystore written:"
+          ls -la "app/$KS_FILE"
+          chmod +x gradlew
+          ./gradlew assembleRelease "-PMYAPP_UPLOAD_STORE_FILE=$KS_FILE" "-PMYAPP_UPLOAD_KEY_ALIAS=$KS_ALIAS" "-PMYAPP_UPLOAD_STORE_PASSWORD=$KS_PASS" "-PMYAPP_UPLOAD_KEY_PASSWORD=$KS_KEY_PASS"
+          rm -f "app/$KS_FILE"
 
       # Push tag to GitHub if package.json version's tag is not tagged
       - name: Get package version
