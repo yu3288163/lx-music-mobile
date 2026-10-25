@@ -20,6 +20,17 @@ const sources: Array<{
     disabled: false,
     supportQualitys: { xiaiai: ['128k'] },
   },
+  // [二开] TVBox py 音乐源（本地内置、离线可用，统一标 128k）
+  { id: 'pyjuhe', name: '音乐聚合', disabled: false, supportQualitys: { pyjuhe: ['128k'] } },
+  { id: 'pyqianqian', name: '千千音乐', disabled: false, supportQualitys: { pyqianqian: ['128k'] } },
+  { id: 'pyyingzi', name: '影子音乐', disabled: false, supportQualitys: { pyyingzi: ['128k'] } },
+  { id: 'pyfengye', name: '枫叶音乐', disabled: false, supportQualitys: { pyfengye: ['128k'] } },
+  { id: 'pykuwo', name: '酷我音乐', disabled: false, supportQualitys: { pykuwo: ['128k'] } },
+  { id: 'pydj1', name: 'DJ哟哟', disabled: false, supportQualitys: { pydj1: ['128k'] } },
+  { id: 'pydj2', name: 'DJ呦呦', disabled: false, supportQualitys: { pydj2: ['128k'] } },
+  { id: 'pyaiting', name: '爱听音乐', disabled: false, supportQualitys: { pyaiting: ['128k'] } },
+  { id: 'tvbox', name: 'TVBox音乐', disabled: false, supportQualitys: { tvbox: ['128k'] } },
+  { id: 'pyqishui', name: '汽水音乐', disabled: false, supportQualitys: { pyqishui: ['128k'] } },
 ]
 
 export default sources

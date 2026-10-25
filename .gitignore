@@ -66,3 +66,9 @@ buck-out/
 
 # testing
 /coverage
+
+# workbuddy / 本地产物
+.workbuddy/
+apk-out/
+nas-tvbox-addon.zip
+android/app/build.corrupt-20261023/

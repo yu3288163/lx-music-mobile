@@ -13,6 +13,7 @@ import Version from '../settings/Version'
 import About from '../settings/About'
 import Alist from '../settings/Alist'
 import Xiaoai from '../settings/Xiaoai'
+import Tvbox from '../settings/Tvbox'
 import Kugou from '../settings/Kugou'
 import Kuwo from '../settings/Kuwo'
 import { createStyle } from '@/utils/tools'
@@ -44,6 +45,7 @@ const ListItem = memo(({
     case 'other': return <Other />
     case 'alist': return <Alist />
       case 'xiaiai': return <Xiaoai />
+      case 'tvbox': return <Tvbox />
       case 'kugou': return <Kugou />
       case 'kuwo': return <Kuwo />
       case 'version': return <Version />

@@ -79,6 +79,7 @@ const defaultSetting: LX.AppSetting = {
   'alist.root': '/',
 
   'xiaiai.base': '',
+  'tvbox.base': '',
   'kugou.base': '',
   'kuwo.base': '',
 

@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react'
+import { View } from 'react-native'
 import OnlineList, { type OnlineListType, type OnlineListProps } from '@/components/OnlineList'
 import { clearListDetail, getListDetail, setListDetail, setListDetailInfo } from '@/core/songlist'
 import songlistState from '@/store/songlist/state'
@@ -112,13 +113,19 @@ export default forwardRef<MusicListType, MusicListProps>(({ componentId }, ref) 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const header = useMemo(() => <Header ref={headerRef} componentId={componentId} />, [])
 
-  return <OnlineList
-    ref={listRef}
-    onPlayList={handlePlayList}
-    onRefresh={handleRefresh}
-    onLoadMore={handleLoadMore}
-    ListHeaderComponent={header}
-    // progressViewOffset={}
-   />
+  // [二开] 头部固定：Header 原来作为 ListHeaderComponent 放在 FlatList 里会随列表滚走，
+  // 改为渲染在列表上方固定不动，仅歌曲列表滚动（用户要求滑动时保留头部）。
+  return (
+    <View style={{ flex: 1 }}>
+      {header}
+      <OnlineList
+        ref={listRef}
+        onPlayList={handlePlayList}
+        onRefresh={handleRefresh}
+        onLoadMore={handleLoadMore}
+        // progressViewOffset={}
+      />
+    </View>
+  )
 })
 

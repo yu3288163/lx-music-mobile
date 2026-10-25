@@ -9,6 +9,10 @@ import xm from './xm'
 import alist from './alist'
 // [二开] 小爱音乐（经自建服务端取链）
 import xiaiai from './xiaiai'
+// [二开] TVBox py 音乐源集合（千千/聚合/影子/枫叶/酷我/DJ哟哟/DJ呦呦/爱听/汽水）
+import pySources from './py'
+// [二开] TVBox音乐（服务器上多个 py 源，单一入口）
+import tvbox from './tvbox'
 import { supportQuality } from './api-source'
 import { versionChars } from './versionChars'
 
@@ -49,6 +53,12 @@ const sources = {
       name: '小爱音乐',
       id: 'xiaiai',
     },
+    // [二开] TVBox py 音乐源（本地内置，离线可用；不参与聚合搜索，避免拖慢全局检索）
+    ...Object.entries(pySources).map(([sid, s]) => ({ name: s.name, id: sid })),    // [二开] TVBox音乐（单一入口，服务器上所有 py 源）
+    {
+      name: 'TVBox音乐',
+      id: 'tvbox',
+    },
   ],
   kw,
   kg,
@@ -61,6 +71,10 @@ const sources = {
   alist,
   // [二开] 小爱音乐
   xiaiai,
+  // [二开] TVBox py 音乐源集合
+  ...pySources,
+  // [二开] TVBox音乐
+  tvbox,
 }
 export default {
   ...sources,
@@ -81,8 +95,10 @@ export const searchMusic = async({ name, singer, source: s, limit = 25 }) => {
   const trimStr = str => typeof str == 'string' ? str.trim() : str
   const musicName = trimStr(name)
   const tasks = []
-  // [二开] alist / 小爱音乐 不参与聚合搜索（避免每次聚合搜索都打你的服务器/网盘，且它们只在独立选中时才有意义）
-  const excludeSource = ['xm', 'alist', 'xiaiai']
+  // [二开] alist / 小爱音乐 / py 源 不参与聚合搜索
+  // （py 源多为 HTML 抓取或需签名的外部接口，放进聚合搜索会拖慢全局检索且易失败；
+  //   它们作为独立搜索源 + 歌单分类浏览使用，更贴合「截图式分类浏览」需求）
+  const excludeSource = ['xm', 'alist', 'xiaiai', 'pyjuhe', 'pyqianqian', 'pyyingzi', 'pyfengye', 'pykuwo', 'pydj1', 'pydj2', 'pyaiting', 'pyqishui', 'tvbox']
   for (const source of sources.sources) {
     if (!sources[source.id].musicSearch || source.id == s || excludeSource.includes(source.id)) continue
     tasks.push(sources[source.id].musicSearch.search(`${musicName} ${singer || ''}`.trim(), 1, limit).catch(_ => null))

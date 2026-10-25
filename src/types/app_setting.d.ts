@@ -385,6 +385,7 @@ declare global {
        * 小爱音乐服务器地址
        */
       'xiaiai.base': string
+      'tvbox.base': string
       /**
        * 酷狗(增强) 服务端地址（与 xiaoai-server 同一台，提供 /kg/* 路由）
        */

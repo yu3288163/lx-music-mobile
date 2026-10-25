@@ -65,8 +65,10 @@ export default () => {
     })
   }
   const onSourceChange: HeaderBarProps['onSourceChange'] = (source) => {
+    const prevSource = boundInfo.current.source
     boundInfo.current.source = source
     void getBoardsList(source).then(list => {
+      if (!list.length) throw new Error('empty boards')
       const id = list[0].id
       const name = list[0].name
       requestAnimationFrame(() => {
@@ -76,6 +78,12 @@ export default () => {
           handleBoundChange(source, id)
         })
       })
+    }).catch((err: any) => {
+      // 该源没有排行榜或接口失败时，原来会让整条链静默中断（头部换了源、榜单还是旧的）。
+      // 这里把状态回退到上一个可用源，并打出原因。
+      console.log('[leaderboard] getBoards failed', source, err?.message)
+      boundInfo.current.source = prevSource
+      headerBarRef.current?.setBound(prevSource, boundInfo.current.id ?? '', 'Unknown')
     })
   }
 

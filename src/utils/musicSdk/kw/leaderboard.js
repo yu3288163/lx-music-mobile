@@ -247,15 +247,31 @@ export default {
     }
     if (++retryNum > 3) return Promise.reject(new Error('try max num'))
 
+    // [二开] 官方 wbd 接口需要 AppId 签名，实测经常返回「AppId错误」。
+    // 优先用 kbangserver 旧接口（原版 lx-music 使用，https 实测可用、无需签名），
+    // 失败再退回 wbd，保证排行榜不会整页「加载失败」。
+    try {
+      const result = await this._getListByKbang(id, page)
+      if (result && result.list.length) return result
+    } catch (_) { /* 走 wbd */ }
+    try {
+      return await this._getListByWbd(id, page)
+    } catch (err) {
+      // 两个接口都挂了多半是网络抖动，按原版逻辑重试几次
+      if (retryNum < 3) return this.getList(id, page, retryNum)
+      throw err
+    }
+  },
+
+  async _getListByWbd(id, page) {
     const requestBody = { uid: '', devId: '', sFrom: 'kuwo_sdk', user_type: 'AP', carSource: 'kwplayercar_ar_6.0.1.0_apk_keluze.apk', id, pn: page - 1, rn: this.limit }
     const requestUrl = `https://wbd.kuwo.cn/api/bd/bang/bang_info?${wbdCrypto.buildParam(requestBody)}`
     const request = httpFetch(requestUrl, { cache: 'default' }).promise
 
     const { statusCode, body } = await request
     const rawData = wbdCrypto.decodeData(body)
-    // console.log(rawData)
-    const data = rawData.data
-    if (statusCode !== 200 || rawData.code != 200 || !data.musiclist) return this.getList(id, page, retryNum)
+    const data = rawData && rawData.data
+    if (statusCode !== 200 || !rawData || rawData.code != 200 || !data || !data.musiclist) throw new Error('wbd fail')
 
     const total = parseInt(data.total)
     const list = this.filterData(data.musiclist)
@@ -267,6 +283,44 @@ export default {
       page,
       source: 'kw',
     }
+  },
+
+  async _getListByKbang(id, page) {
+    const url = `https://kbangserver.kuwo.cn/ksong.s?from=pc&fmt=json&pn=${page - 1}&rn=${this.limit}&type=bang&data=content&id=${id}&show_copyright_off=0&pcmp4=1&isbang=1`
+    const { statusCode, body } = await httpFetch(url, { cache: 'default' }).promise
+    if (statusCode !== 200 || !body || !body.musiclist) throw new Error('获取排行榜失败')
+    const list = body.musiclist.map(it => {
+      const formats = String(it.formats || '').toUpperCase()
+      const types = []
+      const _types = {}
+      if (formats.includes('HIRFLAC') || formats.includes('ALFLAC')) {
+        types.push({ type: 'flac', size: '' })
+        _types.flac = { size: '' }
+      }
+      if (formats.includes('MP3H')) {
+        types.push({ type: '320k', size: '' })
+        _types['320k'] = { size: '' }
+      }
+      types.push({ type: '128k', size: '' })
+      _types['128k'] = { size: '' }
+      return {
+        singer: it.artist || '',
+        name: it.name || '',
+        albumName: it.album || '',
+        albumId: String(it.albumid || ''),
+        songmid: String(it.id || ''),
+        source: 'kw',
+        interval: formatPlayTime(parseInt(it.duration) || 0),
+        img: null,
+        lrc: null,
+        hash: '',
+        otherSource: null,
+        types,
+        _types,
+        typeUrl: {},
+      }
+    }).filter(it => it.songmid && it.name)
+    return { total: list.length, list, limit: this.limit, page, source: 'kw' }
   },
 
   // getDetailPageUrl(id) {

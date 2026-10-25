@@ -35,7 +35,13 @@ const LIST_LOAD_LIMIT = 30
 export const getBoardsList = async(source: LX.OnlineSource) => {
   // const source = (await getLeaderboardSetting()).source as LX.OnlineSource
   if (leaderboardState.boards[source]) return leaderboardState.boards[source].list
-  const board = await (musicSdk[source]?.leaderboard.getBoards() as Promise<Board>)
+  const lb = musicSdk[source]?.leaderboard
+  // [二开] 不是每个源都实现排行榜（py 源里只有影子音乐有）。
+  // 原代码直接用 musicSdk[source]?.leaderboard.getBoards()，遇到没有排行榜的源会抛
+  // TypeError: Cannot read property 'getBoards' of undefined，且调用方没有 catch，
+  // 表现就是「切了源，榜单还停在旧源」。
+  if (!lb || typeof lb.getBoards !== 'function') throw new Error(`source ${source} has no leaderboard`)
+  const board = await (lb.getBoards() as Promise<Board>)
   setBoard(board, source)
   return leaderboardState.boards[source]!.list
 }

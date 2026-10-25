@@ -16,8 +16,11 @@ import Text from '@/components/common/Text'
 import { useTheme } from '@/store/theme/hook'
 // import { importUserApi, removeUserApi } from '@/core/userApi'
 
+// [二开] py 在线源只用于「搜索 / 歌单分类浏览」，不参与「默认音源」单选，避免设置页变长
+const PY_SOURCE_IDS = ['pyjuhe', 'pyqianqian', 'pyyingzi', 'pyfengye', 'pykuwo', 'pydj1', 'pydj2', 'pyaiting', 'pyqishui', 'tvbox']
+
 const apiSourceList = apiSourceInfo
-  .filter(api => api.id !== 'alist') // [二开] Alist 是独立网盘源，不在“自定义源”单选框里出现
+  .filter(api => api.id !== 'alist' && !PY_SOURCE_IDS.includes(api.id))
   .map(api => ({
     id: api.id,
     name: api.name,

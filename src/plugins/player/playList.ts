@@ -4,6 +4,8 @@ import { defaultUrl } from '@/config'
 // import { action as playerAction } from '@/store/modules/player'
 import settingState from '@/store/setting/state'
 import playerState from '@/store/player/state'
+// [二开] py 源播放请求头缓存：取链时写入的 Referer 等防盗链头，在这里回挂到 Track.headers
+import { getPlayHeaders } from '@/utils/musicSdk/py/playHeaders'
 
 
 const list: LX.Player.Track[] = []
@@ -47,6 +49,7 @@ const buildTracks = (musicInfo: LX.Player.PlayMusic, url?: LX.Player.Track['url'
   const artwork = isShowNotificationImage && mInfo.pic && httpRxp.test(mInfo.pic) ? mInfo.pic : undefined
   const lyric = getCurrentFullLyric(mInfo.id)
   if (url) {
+    const playHeaders = getPlayHeaders(url)
     track.push({
       id: `${mInfo.id}__//${Math.random()}__//${url}`,
       url,
@@ -55,6 +58,8 @@ const buildTracks = (musicInfo: LX.Player.PlayMusic, url?: LX.Player.Track['url'
       album,
       artwork,
       userAgent: defaultUserAgent,
+      // [二开] 把 py 源取链时写入的 Referer 等请求头挂到播放轨，绕开防盗链 403
+      ...(playHeaders ? { headers: playHeaders } : {}),
       musicId: mInfo.id,
       lyric,
       // original: { ...musicInfo },
