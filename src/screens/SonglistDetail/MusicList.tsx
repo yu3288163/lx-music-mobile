@@ -6,6 +6,11 @@ import songlistState from '@/store/songlist/state'
 import { handlePlay } from './listAction'
 import Header, { type HeaderType } from './Header'
 import { useListInfo } from './state'
+import { navigations } from '@/navigation'
+import musicSdk from '@/utils/musicSdk'
+import { toast } from '@/utils/tools'
+import { showVideoPlayer } from '@/navigation'
+import { toOldMusicInfo } from '@/utils'
 
 export interface MusicListProps {
   componentId: string
@@ -80,7 +85,70 @@ export default forwardRef<MusicListType, MusicListProps>(({ componentId }, ref) 
 
   const handlePlayList: OnlineListProps['onPlayList'] = (index) => {
     const listDetailInfo = songlistState.listDetailInfo
-    // console.log(songlistState.listDetailInfo)
+    // [二开] Alist 条目分三类：
+    //  - isAlistFolder：点击下钻进子文件夹
+    //  - isAlistVideo：点击取直链后用系统/外部播放器打开（洛雪不渲染视频）
+    //  - 其余：走洛雪音频播放
+    // 注意：listDetailInfo.list 是新格式（toNewMusicInfo 转换过），songmid 在 meta.songId；
+    // isAlistFolder/isAlistVideo 由 toNewMusicInfo 的二开透传逻辑保留
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const item = listDetailInfo.list[index] as any
+    if (item?.isAlistFolder && listDetailInfo.source === 'alist') {
+      navigations.pushSonglistDetailScreen(componentId, {
+        id: item.meta.songId,
+        name: item.name,
+        author: '',
+        img: item.meta.picUrl ?? null,
+        source: 'alist',
+      })
+      return
+    }
+    if (item?.isAlistVideo && listDetailInfo.source === 'alist') {
+      void (async() => {
+        try {
+          const { promise } = musicSdk.alist.getMusicUrl(toOldMusicInfo(item) as any, '128k')
+          const { url } = await promise
+          if (!url) {
+            toast('无法获取视频直链')
+            return
+          }
+          showVideoPlayer({
+            url,
+            title: item.name,
+            artist: item.singer || undefined,
+            list: listDetailInfo.list,
+            index,
+          })
+        } catch (err) {
+          toast('打开视频失败：' + ((err as any)?.message || err))
+        }
+      })()
+      return
+    }
+    // [二开] TVBox 视频条目（如爱听音乐 MV，isVideo 由 tvbox 源标记）：
+    // 取直链后用内置视频播放器打开；取不到链（站方已关闭 MV 播放）给出友好提示
+    if (item?.isVideo && listDetailInfo.source === 'tvbox') {
+      void (async() => {
+        try {
+          const { promise } = musicSdk.tvbox.getMusicUrl(toOldMusicInfo(item) as any, '128k')
+          const { url } = await promise
+          if (!url) {
+            toast('无法获取视频地址（该站可能已关闭 MV 播放）')
+            return
+          }
+          showVideoPlayer({
+            url,
+            title: item.name,
+            artist: item.singer || undefined,
+            list: listDetailInfo.list,
+            index,
+          })
+        } catch (err) {
+          toast('打开视频失败：' + ((err as any)?.message || err))
+        }
+      })()
+      return
+    }
     void handlePlay(listDetailInfo.id, listDetailInfo.source, listDetailInfo.list, index)
   }
   const handleRefresh: OnlineListProps['onRefresh'] = () => {

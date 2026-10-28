@@ -4,6 +4,7 @@ import { createStyle } from '@/utils/tools'
 
 import MusicList, { type MusicListType } from '../MusicList'
 import { getLeaderboardSetting, saveLeaderboardSetting } from '@/utils/data'
+import leaderboardState from '@/store/leaderboard/state'
 import DrawerLayoutFixed, { type DrawerLayoutFixedType } from '@/components/common/DrawerLayoutFixed'
 import HeaderBar, { type HeaderBarType, type HeaderBarProps } from './HeaderBar'
 import { scaleSizeW } from '@/utils/pixelRatio'
@@ -110,14 +111,17 @@ export default () => {
 
     isUnmountedRef.current = false
     void getLeaderboardSetting().then(({ source, boardId }) => {
-      boundInfo.current.source = source
-      boundInfo.current.id = boardId
-      void getBoardsList(source).then(list => {
-        const bound = list.find(l => l.id == boardId)
-        boardsListRef.current?.setList(list, boardId)
-        headerBarRef.current?.setBound(source, boardId, bound?.name ?? 'Unknown')
+      // [二开] 旧版本持久化的源可能已被移除（如本地 py 源），失效时回退默认源
+      const activeSource = leaderboardState.sources.includes(source) ? source : 'kw'
+      const activeBoard = activeSource == source ? boardId : 'kw__16'
+      boundInfo.current.source = activeSource
+      boundInfo.current.id = activeBoard
+      void getBoardsList(activeSource).then(list => {
+        const bound = list.find(l => l.id == activeBoard)
+        boardsListRef.current?.setList(list, activeBoard)
+        headerBarRef.current?.setBound(activeSource, activeBoard, bound?.name ?? 'Unknown')
       })
-      musicListRef.current?.loadList(source, boardId)
+      musicListRef.current?.loadList(activeSource, activeBoard)
     })
 
     return () => {

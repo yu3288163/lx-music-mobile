@@ -380,6 +380,10 @@ declare global {
        * Alist 根目录
        */
       'alist.root': string
+      /**
+       * Alist 歌单详情是否递归下钻子文件夹（false=只列当前层、文件夹可点击下钻；true=铺平所有子目录）
+       */
+      'alist.recursive'?: boolean
 
       /**
        * 小爱音乐服务器地址

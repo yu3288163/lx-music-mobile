@@ -12,14 +12,27 @@ const getListId = (id: string, source: LX.OnlineSource) => `${source}__${id}`
 export const handlePlay = async(id: string, source: Source, list?: LX.Music.MusicInfoOnline[], index = 0) => {
   const listId = getListId(id, source)
   let isPlayingList = false
-  // console.log(list)
   if (!list?.length) list = (await getListDetail(id, source, 1)).list
+  // [二开] Alist 文件夹/视频条目不可在洛雪内播放，过滤之，并把点击位置映射到过滤后下标。
+  // 注意：list 为新格式（meta.qualitys），不能用旧格式字段 it.types 判断！
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isUnplayable = (it: any) => it.source === 'alist' && (!!it.isAlistFolder || !!it.isAlistVideo)
+  if (source === 'alist' && list?.some(isUnplayable)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const playable = (list as any[]).filter((it: any) => !isUnplayable(it))
+    const cur = list[index] as any
+    const pIndex = cur && !isUnplayable(cur) ? playable.indexOf(cur) : -1
+    index = pIndex < 0 ? 0 : pIndex
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    list = playable as any
+  }
   if (list?.length) {
     await setTempList(listId, [...list])
     void playList(LIST_IDS.TEMP, index)
     isPlayingList = true
   }
-  const fullList = await getListDetailAll(source, id)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fullList = source === 'alist' ? (await getListDetailAll(source, id)).filter((it: any) => !it.isAlistFolder && !it.isAlistVideo) : (await getListDetailAll(source, id))
   if (!fullList.length) return
   if (isPlayingList) {
     if (listState.tempListMeta.id == listId) {
@@ -46,7 +59,8 @@ export const handleCollect = async(id: string, source: Source, name: string) => 
     return
   }
 
-  const list = await getListDetailAll(source, id)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const list = (await getListDetailAll(source, id)).filter((it: any) => source !== 'alist' || (!it.isAlistFolder && !it.isAlistVideo))
   await createList({
     name,
     id: `${source}_${toMD5(listId)}`,

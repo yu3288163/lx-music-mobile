@@ -10,8 +10,34 @@ import playerState from '@/store/player/state'
 import musicSdk from '@/utils/musicSdk'
 import { toOldMusicInfo } from '@/utils'
 import { clearMusicUrlByMusic } from '@/utils/data'
+import { showVideoPlayer } from '@/navigation'
 
-export const handlePlay = (musicInfo: LX.Music.MusicInfoOnline) => {
+export const handlePlay = (musicInfo: LX.Music.MusicInfoOnline, list?: LX.Music.MusicInfoOnline[], listIndex?: number) => {
+  // [二开] Alist 视频条目：不走音频播放队列，取直链后用内置视频播放器播放
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const minfo = musicInfo as any
+  if (minfo.source === 'alist' && minfo.isAlistVideo) {
+    void (async() => {
+      try {
+        const { promise } = musicSdk.alist.getMusicUrl(toOldMusicInfo(musicInfo), '128k')
+        const { url } = await promise
+        if (!url) {
+          toast('无法获取视频直链')
+          return
+        }
+        showVideoPlayer({
+          url,
+          title: minfo.name,
+          artist: minfo.singer || undefined,
+          list,
+          index: listIndex,
+        })
+      } catch (err) {
+        toast('打开视频失败：' + ((err as any)?.message || err))
+      }
+    })()
+    return
+  }
   void addListMusics(LIST_IDS.DEFAULT, [musicInfo], settingState.setting['list.addMusicLocationType']).then(() => {
     const index = getListMusicSync(LIST_IDS.DEFAULT).findIndex(m => m.id == musicInfo.id)
     if (index < 0) return

@@ -4,6 +4,7 @@ import { View, StyleSheet, Alert, Text } from 'react-native'
 import InputItem, { type InputItemProps } from '../../components/InputItem'
 import Section from '../../components/Section'
 import Button from '../../components/Button'
+import CheckBoxItem from '../../components/CheckBoxItem'
 import { useI18n } from '@/lang'
 import { useSettingValue } from '@/store/setting/hook'
 import { updateSetting } from '@/core/common'
@@ -109,6 +110,11 @@ export default memo(() => {
           labelKey="setting_alist_root"
           settingKey="alist.root"
           placeholderKey="setting_alist_root_placeholder"
+        />
+        <CheckBoxItem
+          check={!!useSettingValue('alist.recursive')}
+          onChange={(value) => updateSetting({ 'alist.recursive': value } as Partial<LX.AppSetting>)}
+          label={t('setting_alist_recursive')}
         />
         <View style={styles.btnRow}>
           <Button onPress={handleTest}>{t('setting_alist_test')}</Button>

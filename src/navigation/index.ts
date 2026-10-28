@@ -33,6 +33,8 @@ const init = (callback: () => void | Promise<void>) => {
 export * from './utils'
 export * from './event'
 export * from './hooks'
+export { showVideoPlayer } from './videoPlayer'
+export type { VideoPlayerProps } from './videoPlayer'
 
 export {
   init,

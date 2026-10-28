@@ -21,11 +21,13 @@ export default () => {
 
   useEffect(() => {
     void getSongListSetting().then(info => {
-      songlistInfo.current.source = info.source
+      // [二开] 旧版本持久化的源可能已被移除（如本地 py 源），失效时回退默认源
+      const source = songlistState.sources.includes(info.source) ? info.source : 'kw'
+      songlistInfo.current.source = source
       songlistInfo.current.sortId = info.sortId
       songlistInfo.current.tagId = info.tagId
-      headerBarRef.current?.setSource(info.source, info.sortId, info.tagName, info.tagId)
-      listRef.current?.loadList(info.source, info.sortId, info.tagId)
+      headerBarRef.current?.setSource(source, info.sortId, info.tagName, info.tagId)
+      listRef.current?.loadList(source, info.sortId, info.tagId)
     })
   }, [])
 

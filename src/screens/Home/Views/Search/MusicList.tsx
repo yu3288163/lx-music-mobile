@@ -8,6 +8,8 @@ import { LIST_IDS } from '@/config/constant'
 import { navigations } from '@/navigation'
 import commonState from '@/store/common/state'
 import { toast } from '@/utils/tools'
+import { toOldMusicInfo } from '@/utils'
+import { showVideoPlayer } from '@/navigation'
 import musicSdk from '@/utils/musicSdk'
 
 // export type MusicListProps = Pick<OnlineListProps,
@@ -108,8 +110,8 @@ export default forwardRef<MusicListType, {}>((props, ref) => {
             id: cardId,
             name: m.name,
             author: m.singer,
-            img: m.img,
-            desc: m.albumName,
+            img: m.meta?.picUrl ?? m.img,
+            desc: m.meta?.albumName ?? m.albumName,
             source: searchInfoRef.current.source as LX.OnlineSource,
           })
         } else {
@@ -120,11 +122,60 @@ export default forwardRef<MusicListType, {}>((props, ref) => {
       })
       return
     }
-    // 连播列表剔除卡片条目（卡片不可播），否则自动连播滑到歌手卡会报错；
+    // [二开] Alist 视频条目：取直链后用系统/外部播放器打开，不走洛雪音频播放
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const searchItem = list[index] as any
+    if (searchItem?.isAlistVideo && searchInfoRef.current.source === 'alist') {
+      void (async() => {
+        try {
+          const { promise } = musicSdk.alist.getMusicUrl(toOldMusicInfo(searchItem) as any, '128k')
+          const { url } = await promise
+          if (!url) {
+            toast('无法获取视频直链')
+            return
+          }
+          showVideoPlayer({
+            url,
+            title: searchItem.name,
+            artist: searchItem.singer || undefined,
+            list: searchMusicState.listInfos[searchInfoRef.current.source]?.list,
+            index,
+          })
+        } catch (err) {
+          toast('打开视频失败：' + ((err as any)?.message || err))
+        }
+      })()
+      return
+    }
+    // [二开] TVBox 视频条目（如爱听音乐 MV）：取直链后用内置视频播放器打开；
+    // 取不到链（站方已关闭 MV 播放）给出友好提示
+    if (searchItem?.isVideo && searchInfoRef.current.source === 'tvbox') {
+      void (async() => {
+        try {
+          const { promise } = musicSdk.tvbox.getMusicUrl(toOldMusicInfo(searchItem) as any, '128k')
+          const { url } = await promise
+          if (!url) {
+            toast('无法获取视频地址（该站可能已关闭 MV 播放）')
+            return
+          }
+          showVideoPlayer({
+            url,
+            title: searchItem.name,
+            artist: searchItem.singer || undefined,
+            list: searchMusicState.listInfos[searchInfoRef.current.source]?.list,
+            index,
+          })
+        } catch (err) {
+          toast('打开视频失败：' + ((err as any)?.message || err))
+        }
+      })()
+      return
+    }
+    // 连播列表剔除卡片条目与视频条目（均不可在洛雪内播放），否则自动连播滑到会报错；
     // 点击位置映射到剔除后的下标，连播顺序不变
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const playable = list.filter((m) => !(m as any).tvboxCard)
-    const pIndex = list.slice(0, index).filter((m) => !(m as any).tvboxCard).length
+    const playable = list.filter((m) => !(m as any).tvboxCard && !(m as any).isAlistVideo && !(m as any).isVideo)
+    const pIndex = list.slice(0, index).filter((m) => !(m as any).tvboxCard && !(m as any).isAlistVideo && !(m as any).isVideo).length
     void overwriteListMusics(LIST_IDS.TEMP, playable).then(() => {
       void playList(LIST_IDS.TEMP, pIndex)
     })

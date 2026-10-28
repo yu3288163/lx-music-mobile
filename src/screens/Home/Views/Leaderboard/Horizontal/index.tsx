@@ -5,6 +5,7 @@ import { createStyle } from '@/utils/tools'
 import LeftBar, { type LeftBarType, type LeftBarProps } from './LeftBar'
 import MusicList, { type MusicListType } from '../MusicList'
 import { getLeaderboardSetting, saveLeaderboardSetting } from '@/utils/data'
+import leaderboardState from '@/store/leaderboard/state'
 // import { BorderWidths } from '@/theme'
 // import { useTheme } from '@/store/theme/hook'
 
@@ -26,8 +27,11 @@ export default () => {
   useEffect(() => {
     isUnmountedRef.current = false
     void getLeaderboardSetting().then(({ source, boardId }) => {
-      leftBarRef.current?.setBound(source, boardId)
-      musicListRef.current?.loadList(source, boardId)
+      // [二开] 旧版本持久化的源可能已被移除（如本地 py 源），失效时回退默认源
+      const activeSource = leaderboardState.sources.includes(source) ? source : 'kw'
+      const activeBoard = activeSource == source ? boardId : 'kw__16'
+      leftBarRef.current?.setBound(activeSource, activeBoard)
+      musicListRef.current?.loadList(activeSource, activeBoard)
     })
 
     return () => {

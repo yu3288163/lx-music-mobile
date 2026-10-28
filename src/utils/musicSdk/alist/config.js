@@ -30,6 +30,8 @@ export const getAlistConfig = () => {
     user: raw['alist.user'] ?? ALIST_USER,
     pass: raw['alist.pass'] ?? ALIST_PASS,
     root: root.startsWith('/') ? root : '/' + root,
+    // 递归子文件夹：默认关（只列当前目录一层，文件夹可下钻）；开=铺平所有子目录
+    recursive: !!raw['alist.recursive'],
   }
 }
 
@@ -38,6 +40,13 @@ const AUDIO_EXT = ['mp3', 'flac', 'wav', 'm4a', 'aac', 'ogg', 'opus', 'ape', 'wm
 export const isAudio = (name = '') => {
   const i = name.lastIndexOf('.')
   return i > 0 && AUDIO_EXT.includes(name.slice(i + 1).toLowerCase())
+}
+
+// 支持的视频后缀（点按后用系统/外部播放器打开，不在洛雪内播放）
+const VIDEO_EXT = ['mp4', 'mkv', 'avi', 'mov', 'flv', 'wmv', 'webm', 'mpeg', 'mpg', 'ts', 'm2ts', '3gp', 'rmvb', 'vob']
+export const isVideo = (name = '') => {
+  const i = name.lastIndexOf('.')
+  return i > 0 && VIDEO_EXT.includes(name.slice(i + 1).toLowerCase())
 }
 
 // 获取用于请求的 Authorization Token（支持 Token 直用或账号密码登录）
@@ -164,7 +173,7 @@ export const searchByListFallback = async(root, keyword, limit = 30) => {
       if (matched.length >= limit) break
       if (f.is_dir) {
         await walk(f.path, depth + 1)
-      } else if (isAudio(f.name) && f.name.toLowerCase().includes(lowerKeyword)) {
+      } else if ((isAudio(f.name) || isVideo(f.name)) && f.name.toLowerCase().includes(lowerKeyword)) {
         matched.push(f)
       }
     }

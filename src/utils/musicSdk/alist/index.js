@@ -1,7 +1,7 @@
 // Alist 音乐源（二开模块）
 // 把 Alist 网盘当作一个在线音乐源接入洛雪：
 //   - 搜索：调用 Alist /api/fs/search，若服务端未启用搜索则 fallback 到列目录遍历
-//   - 歌单/文件夹浏览：调用 /api/fs/list 列出目录，把文件夹当歌单、音频文件当歌曲
+//   - 歌单/文件夹浏览：调用 /api/fs/list 列出目录（递归下钻多级子文件夹），把文件夹当歌单、音频文件当歌曲
 //   - 播放：调用 Alist /api/fs/get 取直链（raw_url），自动兼容签名验证
 //   - 封面：取 Alist 生成的 thumb/thumbnail
 //   - 歌词：在同级目录查找同名 .lrc 并拉取文本
@@ -14,6 +14,7 @@ import {
   getAlistConfig,
   getAlistToken,
   isAudio,
+  isVideo,
   searchByListFallback,
 } from './config'
 
@@ -104,6 +105,8 @@ const buildMusicInfo = (file) => {
   const fileName = file.name || path.split('/').pop() || '未知'
   const name = fileName.replace(/\.[^.]+$/, '')
   const size = file.size ?? 0
+  // 视频文件：不在洛雪内播放（洛雪是音乐播放器无视频渲染层），点按会用系统/外部播放器打开直链
+  const isVid = isVideo(fileName)
   return {
     name,
     singer: '',
@@ -115,10 +118,12 @@ const buildMusicInfo = (file) => {
     lrc: null,
     img: file.thumb || file.thumbnail || null,
     otherSource: null,
-    // 洛雪按 quality 决定可播音质；Alist 是直链，统一标 128k 即可
-    types: [{ type: '128k', size: String(size) }],
-    _types: { '128k': { size: String(size) } },
+    // 音频：洛雪按 quality 决定可播音质，Alist 是直链，统一标 128k 即可
+    // 视频：types 置空，使其不参与洛雪音频播放队列，由 UI 层拦截走外部播放器
+    types: isVid ? [] : [{ type: '128k', size: String(size) }],
+    _types: isVid ? {} : { '128k': { size: String(size) } },
     typeUrl: {},
+    isAlistVideo: isVid,
   }
 }
 
@@ -160,7 +165,7 @@ const musicSearch = {
     if (useFallback) {
       content = await searchByListFallback(cfg.root, str, limit)
     } else {
-      content = extractList(data).filter(f => !f.is_dir && isAudio(f.name))
+      content = extractList(data).filter(f => !f.is_dir && (isAudio(f.name) || isVideo(f.name)))
     }
 
     const list = content.map(buildMusicInfo)
@@ -173,6 +178,32 @@ const musicSearch = {
       source: 'alist',
     }
   },
+}
+
+// 歌单详情：递归收集目录下所有音频/视频文件（含多级子文件夹）
+// BFS 逐层下钻：限深度 6、限总量 2000 首，防止误填网盘根目录时爆扫
+const collectMediaFiles = async(startPath, { maxDepth = 6, maxFiles = 2000 } = {}) => {
+  const mediaFiles = []
+  const visited = new Set()
+  const queue = [{ path: startPath, depth: 0 }]
+  while (queue.length > 0 && mediaFiles.length < maxFiles) {
+    const { path: dir, depth } = queue.shift()
+    if (visited.has(dir) || depth > maxDepth) continue
+    visited.add(dir)
+    const { content } = await fsList(dir).catch(() => ({ content: [] }))
+    const subDirs = []
+    for (const f of content) {
+      if (f.is_dir) {
+        subDirs.push(f)
+      } else if ((isAudio(f.name) || isVideo(f.name)) && mediaFiles.length < maxFiles) {
+        mediaFiles.push(f)
+      }
+    }
+    if (depth < maxDepth) {
+      for (const d of subDirs) queue.push({ path: d.path, depth: depth + 1 })
+    }
+  }
+  return mediaFiles
 }
 
 // ---- 歌单/文件夹浏览 ----
@@ -223,18 +254,73 @@ const songList = {
       sortId,
     }
   },
-  // 歌单详情：列出文件夹里的音频文件
+  // 歌单详情：
+  //   - 递归关（默认）：仅列当前目录一层，子文件夹作为可下钻条目、音频作为可播放条目
+  //   - 递归开：递归下钻所有子目录，铺平成歌曲（上限 ALIST_MAX_FILES 首，超出截断提示）
   async getListDetail(id, page = 1) {
     const cfg = getAlistConfig()
     if (!cfg.base) {
       return { list: [], total: 0, page, limit: 30, maxPage: 1, key: id, id, source: 'alist', info: { name: id } }
     }
-    const { content } = await fsList(id).catch(err => {
+    const name = id.split('/').pop() || id
+
+    // 递归模式：铺平所有子目录的音频
+    if (cfg.recursive) {
+      const files = await collectMediaFiles(id, { maxDepth: 6, maxFiles: ALIST_MAX_FILES }).catch((err) => {
+        console.warn('Alist list detail error:', err)
+        return []
+      })
+      const list = files.map(buildMusicInfo)
+      const truncated = files.length >= ALIST_MAX_FILES
+      return {
+        list,
+        total: list.length,
+        page,
+        limit: 30,
+        maxPage: 1,
+        key: id,
+        id,
+        source: 'alist',
+        info: { name, desc: truncated ? `${id}（仅显示前 ${ALIST_MAX_FILES} 首）` : id },
+      }
+    }
+
+    // 非递归：仅当前目录一层，文件夹在前便于逐层下钻
+    const { content } = await fsList(id).catch((err) => {
       console.warn('Alist list detail error:', err)
       return { content: [] }
     })
-    const files = content.filter(f => !f.is_dir && isAudio(f.name))
-    const list = files.map(buildMusicInfo)
+    const folders = []
+    const audios = []
+    const videos = []
+    for (const f of content) {
+      if (f.is_dir) folders.push(f)
+      else if (isAudio(f.name)) audios.push(f)
+      else if (isVideo(f.name)) videos.push(f)
+    }
+    folders.sort((a, b) => a.name.localeCompare(b.name))
+    audios.sort((a, b) => a.name.localeCompare(b.name))
+    videos.sort((a, b) => a.name.localeCompare(b.name))
+    const list = [
+      ...folders.map((f) => ({
+        name: f.name,
+        singer: '',
+        source: 'alist',
+        songmid: f.path,
+        albumId: '',
+        interval: '',
+        albumName: '',
+        lrc: null,
+        img: f.thumb || f.thumbnail || null,
+        otherSource: null,
+        types: [],
+        _types: {},
+        typeUrl: {},
+        isAlistFolder: true, // 标记：点击应下钻而非播放
+      })),
+      ...audios.map(buildMusicInfo),
+      ...videos.map(buildMusicInfo),
+    ]
     return {
       list,
       total: list.length,
@@ -244,10 +330,13 @@ const songList = {
       key: id,
       id,
       source: 'alist',
-      info: { name: id.split('/').pop() || id, desc: id },
+      info: { name, desc: id },
     }
   },
 }
+
+// 递归铺平时单歌单歌曲上限（防止 1T 大盘误填根目录时爆扫/超时）
+const ALIST_MAX_FILES = 2000
 
 // ---- 取播放地址 ----
 const getMusicUrl = (songInfo, type) => {

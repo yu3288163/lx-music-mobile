@@ -76,6 +76,16 @@ export const toNewMusicInfo = (oldMusicInfo: any): LX.Music.MusicInfo => {
     }
   }
 
+  // [二开] 透传自定义源标记：Alist 文件夹/视频条目、TVBox 卡片。
+  // 这些标记由 UI 层点击拦截使用（如 Alist 文件夹下钻、视频走外部播放器），
+  // 官方源没有这些字段，完全不受影响。
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ext = newInfo as any
+  if (oldMusicInfo.isAlistFolder) ext.isAlistFolder = true
+  if (oldMusicInfo.isAlistVideo) ext.isAlistVideo = true
+  if (oldMusicInfo.isVideo) ext.isVideo = true
+  if (oldMusicInfo.tvboxCard) ext.tvboxCard = oldMusicInfo.tvboxCard
+
   return newInfo
 }
 
@@ -118,6 +128,12 @@ export const toOldMusicInfo = (minfo: LX.Music.MusicInfo): any => {
         break
     }
   }
+
+  // [二开] 与 toNewMusicInfo 对称：透传 Alist/TVBox 自定义标记
+  if ((minfo as any).isAlistFolder) oInfo.isAlistFolder = true
+  if ((minfo as any).isAlistVideo) oInfo.isAlistVideo = true
+  if ((minfo as any).isVideo) oInfo.isVideo = true
+  if ((minfo as any).tvboxCard) oInfo.tvboxCard = (minfo as any).tvboxCard
 
   return oInfo
 }
